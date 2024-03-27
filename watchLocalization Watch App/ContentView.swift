@@ -33,16 +33,14 @@ struct ContentView: View {
         ZStack {
             // LED
             startLEDFeedback(color: backgroundColor)
+            
+            CircleWithDividers(fetchData: fetchData, direction: $direction)
+                .frame(width: 200, height: 200)
+                .offset(y: 10)
 
             VStack {
                 if equipmentType == "mobile" {
-                    
-                    // Design 1
-                    if let direction = direction {
-                        Text("DOA value: \(direction)")
-                    } else {
-                        Text("Fetching data....")
-                    }
+                    displayText()
                 } else {
                     Text("Safe Environment")
                         .foregroundColor(.black)
@@ -115,6 +113,18 @@ struct ContentView: View {
         }.resume()
     }
     
+    func displayText() -> Text {
+        if let direction = direction {
+            return Text("DOA value: \(direction)")
+        } else {
+            return Text("Fetching data....")
+        }
+    }
+
+    func displayArrowhead() {
+        return
+    }
+    
     
     //   Beeping ==========================================================
     // start beep
@@ -175,6 +185,97 @@ struct ContentView: View {
         hapticTimer = nil
     }
     //   HAPTIC ==========================================================
+}
+
+struct CircleWithDividers: View {
+    var fetchData: () -> Void
+    @Binding var direction: Int?
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.black, lineWidth: 0.4)
+                .overlay(
+                    Circle()
+                        .fill(Color.white)
+                        .opacity(0.2)
+                )
+
+            ForEach(0..<12) { index in
+                let angle = Double(index) * (360.0 / 12)
+                Divider(angle: angle)
+                    .overlay(
+                        Arrow(angle: Double(360 - (direction ?? 0)), color: .red)
+                            .offset(x: 0, y: 0) // Offset to position the arrow at the bottom of the circle
+                    )
+                Text("\(Int(angle))°")
+                    .position(x: 100 + 140 * cos(Angle(degrees: -angle).radians),
+                              y: 100 + 140 * sin(Angle(degrees: -angle).radians))
+            }
+        }
+        .onAppear {
+            self.fetchData()
+        }
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
+            self.fetchData()
+        }
+    }
+}
+
+
+struct Divider: View {
+    let angle: Double
+
+    var body: some View {
+        Path { path in
+            path.move(to: CGPoint(x: 100, y: 100))
+            path.addLine(to: CGPoint(x: 100, y: 0))
+        }
+        .stroke(Color.black, lineWidth: 0.1)
+        .rotationEffect(Angle(degrees: angle))
+    }
+}
+
+
+struct Arrow: View {
+    let angle: Double
+    let color: Color
+
+    var body: some View {
+        GeometryReader { geometry in
+            let arrowLength = geometry.size.width / 2 - 25
+            let arrowHeadLength: CGFloat = 15
+
+            let endPoint = CGPoint(
+                x: geometry.size.width / 2 + arrowLength * CGFloat(cos(Angle(degrees: angle).radians)),
+                y: geometry.size.height / 2 + arrowLength * CGFloat(sin(Angle(degrees: angle).radians))
+            )
+
+            ZStack {
+                Path { path in
+                    // Starting from the center (0, 0)
+                    path.move(to: CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2))
+                    // Extending outward based on the angle
+                    path.addLine(to: endPoint)
+
+                    // Adding arrowhead
+                    path.move(to: endPoint)
+                    path.addLine(to: CGPoint(
+                        x: endPoint.x - arrowHeadLength * CGFloat(cos(Angle(degrees: angle + 30).radians)),
+                        y: endPoint.y - arrowHeadLength * CGFloat(sin(Angle(degrees: angle + 30).radians))
+                    ))
+
+                    path.move(to: endPoint)
+                    path.addLine(to: CGPoint(
+                        x: endPoint.x - arrowHeadLength * CGFloat(cos(Angle(degrees: angle - 30).radians)),
+                        y: endPoint.y - arrowHeadLength * CGFloat(sin(Angle(degrees: angle - 30).radians))
+                    ))
+                }
+                .stroke(color, lineWidth: 2)
+            }
+        }
+        .aspectRatio(contentMode: .fit)
+    }
 }
 
 #if DEBUG
