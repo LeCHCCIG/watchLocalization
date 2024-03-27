@@ -27,7 +27,7 @@ struct ContentView: View {
                     if let direction = direction {
                         Text("DOA value: \(direction)")
                     } else {
-                        Text("Fetching data...")
+                        Text("Fetching data....")
                     }
                     
                     // Button("Stop Haptic") {
