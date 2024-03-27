@@ -7,19 +7,33 @@
 
 import SwiftUI
 import WatchKit
+import AVFoundation
 
 struct ContentView: View {
     @State private var direction: Int?
     @State private var equipmentType: String?
+    @State private var designTypeNumber: Int?
+    let timer = Timer.publish(every: 100, on: .main, in: .common).autoconnect()
+    
+    //Haptic
     @State private var isHapticPlaying: Bool = false
     @State private var hapticTimer: Timer?
-    @State private var designTypeNumber: Int?
+
+    // LED
+    @State private var backgroundColor = Color.red
+    @State private var isLEDPlaying: Bool = false
+    
+    //Beeping
+    @State private var isBeepPlaying: Bool = false
+    @State private var beepTimer: Timer?
+    let beepSoundURL = Bundle.main.url(forResource: "beep", withExtension: "mp3")! // Adjust sound file name and type
+    
     
     var body: some View {
         ZStack {
-            if designTypeNumber == 1 {
-                Color.red // Set background color to white
-            }
+            // LED
+            startLEDFeedback(color: backgroundColor)
+
             VStack {
                 if equipmentType == "mobile" {
                     
@@ -29,12 +43,9 @@ struct ContentView: View {
                     } else {
                         Text("Fetching data....")
                     }
-                    
-                    // Button("Stop Haptic") {
-                    //    stopHapticFeedback()
-                    // }
                 } else {
                     Text("Safe Environment")
+                        .foregroundColor(.black)
                 }
             }
             .padding()
@@ -104,6 +115,51 @@ struct ContentView: View {
         }.resume()
     }
     
+    
+    //   Beeping ==========================================================
+    // start beep
+    func startBeepingFeedback() {
+        isBeepPlaying = true
+        var audioPlayer: AVAudioPlayer?
+
+        do {
+            audioPlayer = try AVAudioPlayer(contentsOf: beepSoundURL)
+            guard let player = audioPlayer else { return }
+            player.prepareToPlay()
+            player.play()
+        } catch let error {
+            print("Error playing sound: \(error.localizedDescription)")
+        }
+    }
+    
+    // stop beep
+    func stopBeepingFeedback(){
+        isBeepPlaying = false
+    }
+    //   Beeping ==========================================================
+    
+    
+    //   LED ==========================================================
+    // start LED
+    func startLEDFeedback(color: Color) -> some View {
+        isLEDPlaying = true
+        return color
+            .edgesIgnoringSafeArea(.all)
+            .onReceive(timer) { _ in
+                // Toggle between red and another color (e.g., blue)
+                self.backgroundColor = (self.backgroundColor == Color.red) ? Color.blue : Color.red
+            }
+    }
+    
+    // stop LED
+    func stopLEDFeedback() {
+        isLEDPlaying = false
+    }
+    //   LED ==========================================================
+    
+    
+    //   HAPTIC ==========================================================
+    // Start haptic
     func startHapticFeedback() {
         isHapticPlaying = true
         hapticTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
@@ -112,11 +168,13 @@ struct ContentView: View {
         }
     }
     
+    // Stop haptic
     func stopHapticFeedback() {
         isHapticPlaying = false
         hapticTimer?.invalidate()
         hapticTimer = nil
     }
+    //   HAPTIC ==========================================================
 }
 
 #if DEBUG
