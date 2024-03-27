@@ -14,37 +14,46 @@ struct ContentView: View {
     @State private var equipmentType: String?
     @State private var designTypeNumber: Int?
     let timer = Timer.publish(every: 100, on: .main, in: .common).autoconnect()
+    @State private var DOAvisualType: String = "arrowHeadAndText"
     
     //Haptic
     @State private var isHapticPlaying: Bool = false
     @State private var hapticTimer: Timer?
 
     // LED
-    @State private var backgroundColor = Color.red
+    @State private var backgroundColor = Color.orange
     @State private var isLEDPlaying: Bool = false
     
     //Beeping
     @State private var isBeepPlaying: Bool = false
     @State private var beepTimer: Timer?
-    let beepSoundURL = Bundle.main.url(forResource: "beep", withExtension: "mp3")! // Adjust sound file name and type
+    let beepSoundURL = Bundle.main.url(forResource: "beep", withExtension: "mp3")
     
     
     var body: some View {
         ZStack {
-            // LED
-            startLEDFeedback(color: backgroundColor)
             
-            CircleWithDividers(fetchData: fetchData, direction: $direction)
-                .frame(width: 200, height: 200)
-                .offset(y: 10)
+            if DOAvisualType == "Text" {
+                displayText()
+                // LED
+//                startLEDFeedback(color: backgroundColor)
+            } else if DOAvisualType == "arrowHead" {
+                CircleWithDividers(fetchData: fetchData, direction: $direction)
+                    .frame(width: 200, height: 200)
+            } else if DOAvisualType == "arrowHeadAndText" {
+                displayText()
+                    .offset(CGSize(width: 0, height: -110.0))
+                CircleWithDividers(fetchData: fetchData, direction: $direction)
+                    .frame(width: 200, height: 200)
+            }
 
             VStack {
-                if equipmentType == "mobile" {
-                    displayText()
-                } else {
-                    Text("Safe Environment")
-                        .foregroundColor(.black)
-                }
+//                if equipmentType == "mobile" {
+//                    displayText()
+//                } else {
+//                    Text("Safe Environment")
+//                        .foregroundColor(.black)
+//                }
             }
             .padding()
         }
@@ -116,8 +125,10 @@ struct ContentView: View {
     func displayText() -> Text {
         if let direction = direction {
             return Text("DOA value: \(direction)")
+                        .font(.system(size: 13))
         } else {
             return Text("Fetching data....")
+                        .font(.system(size: 13))
         }
     }
 
@@ -133,7 +144,7 @@ struct ContentView: View {
         var audioPlayer: AVAudioPlayer?
 
         do {
-            audioPlayer = try AVAudioPlayer(contentsOf: beepSoundURL)
+            audioPlayer = try AVAudioPlayer(contentsOf: beepSoundURL!)
             guard let player = audioPlayer else { return }
             player.prepareToPlay()
             player.play()
@@ -157,7 +168,7 @@ struct ContentView: View {
             .edgesIgnoringSafeArea(.all)
             .onReceive(timer) { _ in
                 // Toggle between red and another color (e.g., blue)
-                self.backgroundColor = (self.backgroundColor == Color.red) ? Color.blue : Color.red
+                self.backgroundColor = (self.backgroundColor == Color.green) ? Color.blue : Color.yellow
             }
     }
     
@@ -190,6 +201,8 @@ struct ContentView: View {
 struct CircleWithDividers: View {
     var fetchData: () -> Void
     @Binding var direction: Int?
+    
+    var circumference: CGFloat = 110
 
     var body: some View {
         ZStack {
@@ -200,6 +213,7 @@ struct CircleWithDividers: View {
                         .fill(Color.white)
                         .opacity(0.2)
                 )
+                .frame(width: circumference, height: circumference) // Set frame to control the circumference
 
             ForEach(0..<12) { index in
                 let angle = Double(index) * (360.0 / 12)
@@ -208,9 +222,11 @@ struct CircleWithDividers: View {
                         Arrow(angle: Double(360 - (direction ?? 0)), color: .red)
                             .offset(x: 0, y: 0) // Offset to position the arrow at the bottom of the circle
                     )
+//                    .frame(width: 110, height: 110)
                 Text("\(Int(angle))°")
-                    .position(x: 100 + 140 * cos(Angle(degrees: -angle).radians),
-                              y: 100 + 140 * sin(Angle(degrees: -angle).radians))
+                    .font(.system(size: 13))
+                    .position(x: 100 + 70 * cos(Angle(degrees: -angle).radians),
+                              y: 100 + 70 * sin(Angle(degrees: -angle).radians))
             }
         }
         .onAppear {
@@ -229,9 +245,9 @@ struct Divider: View {
     var body: some View {
         Path { path in
             path.move(to: CGPoint(x: 100, y: 100))
-            path.addLine(to: CGPoint(x: 100, y: 0))
+            path.addLine(to: CGPoint(x: 100, y: 45))
         }
-        .stroke(Color.black, lineWidth: 0.1)
+        .stroke(Color.black, lineWidth: 0.5)
         .rotationEffect(Angle(degrees: angle))
     }
 }
@@ -243,7 +259,7 @@ struct Arrow: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let arrowLength = geometry.size.width / 2 - 25
+            let arrowLength = geometry.size.width / 2 - 45
             let arrowHeadLength: CGFloat = 15
 
             let endPoint = CGPoint(
