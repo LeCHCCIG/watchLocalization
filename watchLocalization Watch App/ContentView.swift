@@ -13,8 +13,8 @@ struct ContentView: View {
     @State private var direction: Int?
     @State private var equipmentType: String?
     @State private var designTypeNumber: Int?
-    let timer = Timer.publish(every: 100, on: .main, in: .common).autoconnect()
-    @State private var DOAvisualType: String = "arrowHeadAndText"
+    let timer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
+    @State private var DOAvisualType: String = "ArrowHead"
     
     //Haptic
     @State private var isHapticPlaying: Bool = false
@@ -32,30 +32,35 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
-            
-            if DOAvisualType == "Text" {
-                displayText()
+            if DOAvisualType == "Text" && equipmentType == "mobile" {
                 // LED
-//                startLEDFeedback(color: backgroundColor)
-            } else if DOAvisualType == "arrowHead" {
+                // startLEDFeedback(color: backgroundColor)
+                // stopLEDFeedback()
+                
+                // Haptic
+                // startHapticFeedback()
+                // stopHapticFeedback()
+                
+                // Beeping
+                // startBeepingFeedback()
+                // stopBeepingFeedback()
+                
+                // VIEW
+                displayText(fontSizeWeight: 20)
+                //VIEW
+            } else if DOAvisualType == "ArrowHead" {
+                // VIEW
                 CircleWithDividers(fetchData: fetchData, direction: $direction)
                     .frame(width: 200, height: 200)
-            } else if DOAvisualType == "arrowHeadAndText" {
-                displayText()
+                // VIEW
+            } else if DOAvisualType == "ArrowHeadAndText" {
+                // VIEW
+                displayText(fontSizeWeight: 14)
                     .offset(CGSize(width: 0, height: -110.0))
                 CircleWithDividers(fetchData: fetchData, direction: $direction)
                     .frame(width: 200, height: 200)
+                // VIEW
             }
-
-            VStack {
-//                if equipmentType == "mobile" {
-//                    displayText()
-//                } else {
-//                    Text("Safe Environment")
-//                        .foregroundColor(.black)
-//                }
-            }
-            .padding()
         }
         .onAppear {
             // Call fetchData() when the view appears
@@ -97,11 +102,6 @@ struct ContentView: View {
                         if let equipmentType = (json as? [String: Any])?["equipmentType"] as? String {
                             DispatchQueue.main.async {
                                 self.equipmentType = equipmentType
-                                if equipmentType == "mobile" {
-                                    self.startHapticFeedback()
-                                } else {
-                                    self.stopHapticFeedback()
-                                }
                             }
                         }
                         
@@ -122,40 +122,39 @@ struct ContentView: View {
         }.resume()
     }
     
-    func displayText() -> Text {
+    func displayText(fontSizeWeight: CGFloat) -> Text {
         if let direction = direction {
             return Text("DOA value: \(direction)")
-                        .font(.system(size: 13))
+                        .font(.system(size: fontSizeWeight))
         } else {
             return Text("Fetching data....")
-                        .font(.system(size: 13))
+                        .font(.system(size: fontSizeWeight))
         }
     }
 
-    func displayArrowhead() {
-        return
-    }
-    
     
     //   Beeping ==========================================================
     // start beep
-    func startBeepingFeedback() {
+    func startBeepingFeedback() -> some View {
         isBeepPlaying = true
-        var audioPlayer: AVAudioPlayer?
-
-        do {
-            audioPlayer = try AVAudioPlayer(contentsOf: beepSoundURL!)
-            guard let player = audioPlayer else { return }
-            player.prepareToPlay()
-            player.play()
-        } catch let error {
-            print("Error playing sound: \(error.localizedDescription)")
-        }
+        WKInterfaceDevice.current().play(.click)
+//        var audioPlayer: AVAudioPlayer?
+//
+//        do {
+//            audioPlayer = try AVAudioPlayer(contentsOf: beepSoundURL!)
+//            guard let player = audioPlayer else { return EmptyView() }
+//            player.prepareToPlay()
+//            player.play()
+//        } catch let error {
+//            print("Error playing sound: \(error.localizedDescription)")
+//        }
+        return EmptyView()
     }
     
     // stop beep
-    func stopBeepingFeedback(){
+    func stopBeepingFeedback() -> some View {
         isBeepPlaying = false
+        return EmptyView()
     }
     //   Beeping ==========================================================
     
@@ -173,27 +172,30 @@ struct ContentView: View {
     }
     
     // stop LED
-    func stopLEDFeedback() {
+    func stopLEDFeedback() -> some View {
         isLEDPlaying = false
+        return EmptyView()
     }
     //   LED ==========================================================
     
     
     //   HAPTIC ==========================================================
     // Start haptic
-    func startHapticFeedback() {
+    func startHapticFeedback() -> some View {
         isHapticPlaying = true
         hapticTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             let device = WKInterfaceDevice.current()
             device.play(.notification) // Use .click or any other WKHapticType you prefer
         }
+        return EmptyView()
     }
     
     // Stop haptic
-    func stopHapticFeedback() {
+    func stopHapticFeedback() -> some View {
         isHapticPlaying = false
         hapticTimer?.invalidate()
         hapticTimer = nil
+        return EmptyView()
     }
     //   HAPTIC ==========================================================
 }
