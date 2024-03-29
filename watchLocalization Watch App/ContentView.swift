@@ -14,7 +14,7 @@ struct ContentView: View {
     @State private var equipmentType: String?
     @State private var designTypeNumber: Int?
     let timer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
-    @State private var DOAvisualType: String = "ArrowHead"
+    @State private var DOAvisualType: String = "Text"
     
     //Haptic
     @State private var isHapticPlaying: Bool = false
@@ -28,38 +28,62 @@ struct ContentView: View {
     @State private var isBeepPlaying: Bool = false
     @State private var beepTimer: Timer?
     let beepSoundURL = Bundle.main.url(forResource: "beep", withExtension: "mp3")
-    
+    @State private var selectedCondition: String? = nil
+    @State private var showButton = true
     
     var body: some View {
         ZStack {
-            if DOAvisualType == "Text" && equipmentType == "mobile" {
-                // LED
-                // startLEDFeedback(color: backgroundColor)
-                // stopLEDFeedback()
-                
-                // Haptic
-                // startHapticFeedback()
-                // stopHapticFeedback()
-                
-                // Beeping
-                // startBeepingFeedback()
-                // stopBeepingFeedback()
-                
-                // VIEW
-                displayText(fontSizeWeight: 20)
-                //VIEW
-            } else if DOAvisualType == "ArrowHead" {
-                // VIEW
-                CircleWithDividers(fetchData: fetchData, direction: $direction)
-                    .frame(width: 200, height: 200)
-                // VIEW
-            } else if DOAvisualType == "ArrowHeadAndText" {
-                // VIEW
-                displayText(fontSizeWeight: 14)
-                    .offset(CGSize(width: 0, height: -110.0))
-                CircleWithDividers(fetchData: fetchData, direction: $direction)
-                    .frame(width: 200, height: 200)
-                // VIEW
+            VStack(spacing: 20) {
+                if showButton {
+                    VStack(spacing: 20) {
+                        Button(action: {
+                            selectedCondition = "Text"
+                            // Hide the button
+                            showButton.toggle()
+                        }) {
+                            Text("Text")
+                        }
+                        Button(action: {
+                            selectedCondition = "ArrowHead"
+                            // Hide the button
+                            showButton.toggle()
+                        }) {
+                            Text("ArrowHead")
+                        }
+                        Button(action: {
+                            selectedCondition = "ArrowHeadAndText"
+                            // Hide the button
+                            showButton.toggle()
+                        }) {
+                            Text("ArrowHead-Text")
+                        }
+                    }
+                } else {
+                    Button(action: {
+                        selectedCondition = "ArrowHeadAndText"
+                        // Hide the button
+                        showButton.toggle()
+                    }) {
+                        Text("Go-Back")
+                    }
+                    if selectedCondition == "Text" && equipmentType != "mobile" {
+                        // VIEW
+                        displayText(fontSizeWeight: 20)
+                        //VIEW
+                    } else if selectedCondition == "ArrowHead" && equipmentType != "mobile" {
+                        // VIEW
+                        CircleWithDividers(fetchData: fetchData, direction: $direction)
+                            .frame(width: 200, height: 200)
+                        // VIEW
+                    } else if selectedCondition == "ArrowHeadAndText" && equipmentType != "mobile" {
+                        // VIEW
+                        displayText(fontSizeWeight: 14)
+                            .offset(CGSize(width: 0, height: -110.0))
+                        CircleWithDividers(fetchData: fetchData, direction: $direction)
+                            .frame(width: 200, height: 200)
+                        // VIEW
+                    }
+                }
             }
         }
         .onAppear {
