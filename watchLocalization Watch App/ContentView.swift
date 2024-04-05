@@ -13,8 +13,8 @@ struct ContentView: View {
     @State private var direction: Int?
     @State private var equipmentType: String?
     @State private var designTypeNumber: Int?
-    let timer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
-    @State private var DOAvisualType: String = "Text"
+    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    @State private var DOAvisualType: String = "None"
     
     //Haptic
     @State private var isHapticPlaying: Bool = false
@@ -23,6 +23,7 @@ struct ContentView: View {
     // LED
     @State private var backgroundColor = Color.orange
     @State private var isLEDPlaying: Bool = false
+    @State private var currentIndex = 0
     
     //Beeping
     @State private var isBeepPlaying: Bool = false
@@ -30,12 +31,13 @@ struct ContentView: View {
     let beepSoundURL = Bundle.main.url(forResource: "beep", withExtension: "mp3")
     @State private var selectedCondition: String? = nil
     @State private var showButton = true
+    @State private var hapticState = true
     
     var body: some View {
         ZStack {
-            VStack(spacing: 20) {
+            VStack() {
                 if showButton {
-                    VStack(spacing: 20) {
+                    VStack(spacing: 5) {
                         Button(action: {
                             selectedCondition = "Text"
                             // Hide the button
@@ -57,31 +59,67 @@ struct ContentView: View {
                         }) {
                             Text("ArrowHead-Text")
                         }
+                        Button(action: {
+                            selectedCondition = "LED"
+                            // Hide the button
+                            showButton.toggle()
+                        }) {
+                            Text("LED")
+                        }
                     }
                 } else {
-                    Button(action: {
-                        selectedCondition = "ArrowHeadAndText"
-                        // Hide the button
-                        showButton.toggle()
-                    }) {
-                        Text("Go-Back")
-                    }
-                    if selectedCondition == "Text" && equipmentType != "mobile" {
-                        // VIEW
-                        displayText(fontSizeWeight: 20)
-                        //VIEW
-                    } else if selectedCondition == "ArrowHead" && equipmentType != "mobile" {
-                        // VIEW
-                        CircleWithDividers(fetchData: fetchData, direction: $direction)
-                            .frame(width: 200, height: 200)
-                        // VIEW
-                    } else if selectedCondition == "ArrowHeadAndText" && equipmentType != "mobile" {
-                        // VIEW
-                        displayText(fontSizeWeight: 14)
-                            .offset(CGSize(width: 0, height: -110.0))
-                        CircleWithDividers(fetchData: fetchData, direction: $direction)
-                            .frame(width: 200, height: 200)
-                        // VIEW
+                    if selectedCondition != "LED" {
+                        Button(action: {
+                            isHapticPlaying = false
+                            WKInterfaceDevice.current().play(.stop)
+                            // Hide the button
+                            showButton.toggle()
+                            selectedCondition = "None"
+                        }) {
+                            Text("Go-Back")
+                        }
+                        if selectedCondition == "Text" && equipmentType == "mobile" {
+                            // VIEW
+                            displayText(fontSizeWeight: 20)
+                            //VIEW
+                            
+                            startHapticFeedback()
+                            
+                        } else if selectedCondition == "ArrowHead" && equipmentType == "mobile" {
+                            // VIEW
+                            CircleWithDividers(fetchData: fetchData, direction: $direction)
+                                .frame(width: 200, height: 200)
+                            // VIEW
+                            
+//                            startHapticFeedback()
+                            
+                        } else if selectedCondition == "ArrowHeadAndText" && equipmentType == "mobile" {
+                            // VIEW
+                            displayText(fontSizeWeight: 14)
+    //                            .offset(CGSize(width: 0, height: -110.0))
+                            CircleWithDividers(fetchData: fetchData, direction: $direction)
+                                .frame(width: 200, height: 200)
+                            // VIEW
+                            
+//                            startHapticFeedback()
+                        }
+                    } else if selectedCondition == "LED" && equipmentType == "mobile" {
+                        VStack(spacing: 5) {
+                            // LED
+                            startLEDFeedback(color: backgroundColor)
+                            // LED
+                            startHapticFeedback()
+                            
+                            Button(action: {
+                                isHapticPlaying = false
+                                WKInterfaceDevice.current().play(.stop)
+                                // Hide the button
+                                showButton.toggle()
+                                selectedCondition = "None"
+                            }) {
+                                Text("Go-Back")
+                            }
+                        }
                     }
                 }
             }
@@ -90,7 +128,7 @@ struct ContentView: View {
             // Call fetchData() when the view appears
             self.fetchData()
         }
-        .onReceive(Timer.publish(every: 15, on: .main, in: .common).autoconnect()) { _ in
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             // Call fetchData() every 10 second
             self.fetchData()
         }
@@ -98,7 +136,7 @@ struct ContentView: View {
 
 
     func fetchData() {
-        guard let url = URL(string: "http://192.168.1.88:5300/direction") else {
+        guard let url = URL(string: "http://192.168.1.145:5300/direction") else {
             print("Invalid URL")
             return
         }
@@ -123,13 +161,13 @@ struct ContentView: View {
                         let json = try JSONSerialization.jsonObject(with: data, options: [])
                         print("API Response: \(json)")
                         
-                        if let equipmentType = (json as? [String: Any])?["equipmentType"] as? String {
+                        if let equipmentType = (json as? [String: Any])?["model_type"] as? String {
                             DispatchQueue.main.async {
                                 self.equipmentType = equipmentType
                             }
                         }
                         
-                        if let direction = (json as? [String: Any])?["direction"] as? Int {
+                        if let direction = (json as? [String: Any])?["doa_value"] as? Int {
                             DispatchQueue.main.async {
                                 self.direction = direction
                             }
@@ -186,12 +224,16 @@ struct ContentView: View {
     //   LED ==========================================================
     // start LED
     func startLEDFeedback(color: Color) -> some View {
-        isLEDPlaying = true
+        isLEDPlaying = true // Assuming isLEDPlaying is a @State variable to control the state of LED playing
+        
+        let colors: [Color] = [.red, .green, .blue, .yellow] // Define the colors to cycle through
+        
         return color
             .edgesIgnoringSafeArea(.all)
             .onReceive(timer) { _ in
-                // Toggle between red and another color (e.g., blue)
-                self.backgroundColor = (self.backgroundColor == Color.green) ? Color.blue : Color.yellow
+                // Increment current index and loop back to 0 if it reaches the end
+                self.currentIndex = (self.currentIndex + 1) % colors.count
+                self.backgroundColor = colors[self.currentIndex]
             }
     }
     
@@ -207,18 +249,15 @@ struct ContentView: View {
     // Start haptic
     func startHapticFeedback() -> some View {
         isHapticPlaying = true
-        hapticTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            let device = WKInterfaceDevice.current()
-            device.play(.notification) // Use .click or any other WKHapticType you prefer
-        }
+        let device = WKInterfaceDevice.current()
+        device.play(.notification)
         return EmptyView()
     }
     
     // Stop haptic
     func stopHapticFeedback() -> some View {
         isHapticPlaying = false
-        hapticTimer?.invalidate()
-        hapticTimer = nil
+        WKInterfaceDevice.current().play(.stop)
         return EmptyView()
     }
     //   HAPTIC ==========================================================
